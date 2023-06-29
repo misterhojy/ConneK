@@ -1,72 +1,53 @@
 
-# http://localhost:8000/
+# http://localhost:8000
 
-# http://127.0.0.1:8000/docs
+# http://127.0.0.1:8000
 
 from fastapi import FastAPI
 from fastapi.params import Body
 from pydantic import BaseModel
+from typing import List
+
 
 app = FastAPI()
 
-class User(BaseModel):
-    username: str
-    phone_number: str # unique
-    user_id: int
+# Tag
+class Tag(BaseModel):
+    name: str
+    color: str
+    members: list
 
-
+# Contact
 class Contact(BaseModel):
     first_name: str
     last_name: str
-    phone_number: str
-    since_last: int
+    image: str
+    phone_number: int
+    reminder: int
+    tags: list
 
-@app.get("/") # decorator
+@app.get("/") # decorator | Should this be login
 def root():
-    return {"message": "Hello World"}
+    return {"message": "Hey Guy"}
 
-# Contacts
-
-# Create a contact
-
-
-# Read ONE contact
-
-@app.get("/contacts")
+# Read Contact
+@app.get("/contact")
 def get_contact():
-    pass
+    return {"message": "Retrieving Contact"}
 
-# Read ALL contacts
+# Creating Contact
+@app.post("/contact")
+def create_contact(new_contact: Contact):
+    print(new_contact)
+    return {"Contact": "Created new Contact"}
 
+# Read Tag
+@app.get("/tag")
+def get_tag():
+    return {"message": "Retrieving Tag"}
 
-
-# Update a contact
-
-
-
-# Delete a contact
-
-
-# Login -> Click contact -> Send Hangout Request with message and date -> Request object gets created (Request: Title (hung out at starbucks), Message (todayu was a greate day got venti sometig) (saved to the journal), Date, Button)
-
-
-# Login -> Click contact -> Send Hangout Request with message "coffe tm?" and date ->Hangout Request object gets created (Request: Contact name , Message (coffe tm?) (saved to the journal), Date, Button) -> 
-# hung out, resets timer Notes object (saved to journal) "had coffe with friend talked ab plans" button
-
-# Login -> Click contact -> Send Hangout Request with message "coffe tm?" and date -> Save a message AND send a message, ALSO create FORM (form: title, message, date, button)
-
-# Sender_Request: (Title, Body, Date of Plan) -> # iMessage == Sender_Request (Messaging API) AND ()
-
-
-
-# Login
-
-# Users: username, number (CRUD)
-
-# Contact: (username, number) -> Users, since-last-count (CRUD)
-
-# Group: collection of Contact.obj, since-last-count (CRUD)
-
-# Tags: name, collection of contact.obj (CRUD)
-
-# Journal: title, message body, date
+# Creating Tag
+@app.post("/tag")
+def create_tag(new_tag: Tag):
+    print(new_tag)
+    return {"Tag": "Created new Tag"}
