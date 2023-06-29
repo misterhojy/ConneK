@@ -3,7 +3,7 @@
 
 # http://127.0.0.1:8000
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status, HTTPException
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
@@ -45,9 +45,13 @@ def find_contact(id):
     return contact
 
 
-@app.get("/") # decorator | Should this be login
-def root():
-    return {"message": "Hey Guy"}
+# Creating Contact
+@app.post("/contacts", status_code=status.HTTP_201_CREATED)
+def create_contact(contact: Contact):
+    new_contact = contact.dict()
+    new_contact['id'] = randrange(0, 1000000)
+    my_contacts.append(new_contact)
+    return {"data": new_contact}
 
 
 # Read Contacts
@@ -58,23 +62,39 @@ def get_contacts():
 
 # Read One Contact
 @app.get("/contacts/{id}")
-def get_contact(id: int):
+def get_contact(id: int, response: Response):
     # Need to find id in array of contacts
     contact = find_contact(id)
     if contact:
         return {"data": contact}
     else:
-        return {"message": "Contact not found"}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
+    
+
+#  Updating Contact
+@app.put("/contacts/{id}")
+def update_contact(id: int, updated_contact: Contact):
+    contact = find_contact(id)
+    if contact:
+        index = my_contacts.index(contact)
+        updated_contact_dict = updated_contact.dict()
+        updated_contact_dict['id'] = id
+        my_contacts[index] = updated_contact_dict
+        return {"data": updated_contact_dict}
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
 
 
-# Creating Contact
-@app.post("/contacts")
-def create_contact(contact: Contact):
-    contact_dict = contact.dict()
-    contact_dict['id'] = randrange(0, 1000000)
-    my_contacts.append(contact_dict)
-    return {"data": contact_dict}
 
+# Deleting Contact
+@app.delete("/contacts/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_contact(id: int, response: Response):
+    contact = find_contact(id)
+    if contact:
+        my_contacts.remove(contact)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
 
 
 # Read Tag
