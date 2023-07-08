@@ -8,6 +8,10 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
+
 
 app = FastAPI()
 
@@ -15,7 +19,6 @@ app = FastAPI()
 class Tag(BaseModel):
     name: str
     color: Optional[str] = None
-    members: Optional[list] = None
 
 
 # Contact
@@ -26,6 +29,27 @@ class Contact(BaseModel):
     phone_number: Optional[int] = None
     reminder: Optional[int] = None
     tags: Optional[list] = None
+
+
+# Group
+class Group(BaseModel):
+    name: Optional[str] = None
+    image: Optional[str] = None
+    reminder: Optional[str] = None
+    tags: Optional[str] = None
+    
+
+while True:
+    try:
+        connection = psycopg2.connect(host='localhost', database='Konnec-Project', user='postgres', password='7)&:Bravo79)', 
+                                    cursor_factory=RealDictCursor)
+        cursor = connection.cursor()
+        print("Database connection was successfull!")
+        break
+    except Exception as error:
+        print("Connection to database failed")
+        print("Error: ", error)
+        time.sleep(10)
 
 
 # Creating new tags
@@ -48,16 +72,20 @@ def find_contact(id):
 # Creating Contact
 @app.post("/contacts", status_code=status.HTTP_201_CREATED)
 def create_contact(contact: Contact):
-    new_contact = contact.dict()
-    new_contact['id'] = randrange(0, 1000000)
-    my_contacts.append(new_contact)
+    cursor.execute("""INSERT INTO contacts ("first name", "last name", "phone number", "reminder", "image", "tags") VALUES
+                    (%s, %s, %s, %s, %s, %s) RETURNING *""", (contact.first_name, contact.last_name, contact.phone_number, contact.reminder,
+                                                  contact.image, contact.tags))
+    new_contact = cursor.fetchone()
+    connection.commit()
     return {"data": new_contact}
 
 
 # Read Contacts
 @app.get("/contacts")
 def get_contacts():
-    return {"data": my_contacts}
+    cursor.execute("""SELECT * FROM contacts """)
+    contacts = cursor.fetchall()
+    return {"data": contacts}
 
 
 # Read One Contact
