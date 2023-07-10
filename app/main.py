@@ -12,7 +12,6 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
 
-
 app = FastAPI()
 
 # Tag
@@ -20,24 +19,20 @@ class Tag(BaseModel):
     name: str
     color: Optional[str] = None
 
-
 # Contact
 class Contact(BaseModel):
     first_name: str
     last_name: Optional[str] = None
-    image: Optional[str] = None
     phone_number: Optional[int] = None
+    image: Optional[str] = None
     reminder: Optional[int] = None
-    tags: Optional[list] = None
-
 
 # Group
 class Group(BaseModel):
     name: Optional[str] = None
     image: Optional[str] = None
     reminder: Optional[str] = None
-    tags: Optional[str] = None
-    
+
 
 while True:
     try:
@@ -52,29 +47,11 @@ while True:
         time.sleep(10)
 
 
-# Creating new tags
-gym_tag = Tag(name="Gym")
-basketball_tag = Tag(name="Basketball")
-
-my_contacts = [{ "first_name": "Hojat", "last_name": "Jaffary", "image": "/path/to/image/file", "phone_number": "6314647797", "reminder": 7, "tags": [], "id": 1}, 
-                { "first_name": "Sahail", "last_name": "Jaffary", "phone_number": "6315699178", "id": 2},
-                { "first_name": "Mason", "last_name": "Taylor", "phone_number": "6318001686", "reminder": 3, "tags": [gym_tag, basketball_tag], "id": 3}]
-
-def find_contact(id):
-    contact = None
-    for c in my_contacts:
-        if c.get('id') == id:
-            contact = c
-            return contact
-    return contact
-
-
 # Creating Contact
 @app.post("/contacts", status_code=status.HTTP_201_CREATED)
 def create_contact(contact: Contact):
-    cursor.execute("""INSERT INTO contacts ("first name", "last name", "phone number", "reminder", "image", "tags") VALUES
-                    (%s, %s, %s, %s, %s, %s) RETURNING *""", (contact.first_name, contact.last_name, contact.phone_number, contact.reminder,
-                                                  contact.image, contact.tags))
+    cursor.execute("""INSERT INTO contacts ("first name", "last name", "phone number", "image", "reminder") VALUES
+                    (%s, %s, %s, %s, %s) RETURNING *""", (contact.first_name, contact.last_name, contact.phone_number, contact.image, contact.reminder))
     new_contact = cursor.fetchone()
     connection.commit()
     return {"data": new_contact}
@@ -91,39 +68,36 @@ def get_contacts():
 # Read One Contact
 @app.get("/contacts/{id}")
 def get_contact(id: int, response: Response):
-    # Need to find id in array of contacts
-    contact = find_contact(id)
+    cursor.execute("""SELECT * FROM contacts WHERE id = %s""", (str(id),))
+    contact = cursor.fetchone()
     if contact:
         return {"data": contact}
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")
     
 
-#  Updating Contact
+# Updating Contact
 @app.put("/contacts/{id}")
-def update_contact(id: int, updated_contact: Contact):
-    contact = find_contact(id)
-    if contact:
-        index = my_contacts.index(contact)
-        updated_contact_dict = updated_contact.dict()
-        updated_contact_dict['id'] = id
-        my_contacts[index] = updated_contact_dict
-        return {"data": updated_contact_dict}
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
-
+def update_contact(id: int, contact: Contact):
+    cursor.execute("""UPDATE contacts SET "first name" = %s, "last name" = %s, "phone number" = %s, "image" = %s, "reminder" = %s WHERE id = %s RETURNING *""",
+                   (contact.first_name, contact.last_name, contact.phone_number, contact.image, contact.reminder, (str(id))))
+    updated_contact = cursor.fetchone()
+    connection.commit()
+    if updated_contact is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")    
+    return {"data": updated_contact}
 
 
 # Deleting Contact
 @app.delete("/contacts/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_contact(id: int, response: Response):
-    contact = find_contact(id)
-    if contact:
-        my_contacts.remove(contact)
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
-
+def delete_contact(id: int):
+    cursor.execute("""DELETE FROM contacts WHERE id = %s RETURNING *""", (str(id),))
+    deleted_contact = cursor.fetchone()
+    connection.commit()
+    if deleted_contact == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+       
 
 # Read Tag
 @app.get("/tags")
