@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from . import models, schemas
 from .database import engine, get_db
-from .helper import is_valid_number, create_contactResponse
+from .helper import is_valid_number, create_contactResponse, update_attributes
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -31,8 +31,7 @@ while True:
 def create_contact(contact: schemas.ContactBase, db: Session = Depends(get_db)):
 
     if contact.phone_number:
-        if not is_valid_number(contact.phone_number):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Invalid Phone Number: {contact.phone_number}")
+        is_valid_number(contact.phone_number)
 
     new_contact = models.Contact(**contact.dict())
     db.add(new_contact)
@@ -79,8 +78,7 @@ def update_contact(id: int, contact: schemas.ContactBase, db: Session = Depends(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")  
 
     if contact.phone_number:
-        if not is_valid_number(contact.phone_number):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Invalid Phone Number: {contact.phone_number}")
+        is_valid_number(contact.phone_number)
     
     contact_query.update(contact.dict(), synchronize_session=False)
     db.commit()
@@ -99,23 +97,10 @@ def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depend
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found") 
     
     if contact.phone_number:
-        if not is_valid_number(contact.phone_number):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Invalid Phone Number: {contact.phone_number}")
+        is_valid_number(contact.phone_number)
 
     # Create a dictionary to store the attribute updates
-    attribute_updates = {}
-
-    if contact.first_name:
-        attribute_updates["first_name"] = contact.first_name
-    if contact.last_name:
-        attribute_updates["last_name"] = contact.last_name
-    if contact.phone_number:
-        attribute_updates["phone_number"] = contact.phone_number
-    if contact.reminder:
-        attribute_updates["reminder"] = contact.reminder
-    if contact.image:
-        attribute_updates["image"] = contact.image
-
+    attribute_updates = update_attributes(contact)    
     # Update the contact attributes with the dictionary of updates
     contact_query.update(attribute_updates, synchronize_session=False)
 
