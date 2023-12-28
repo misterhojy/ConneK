@@ -8,7 +8,18 @@ Connek is a personal tool that will allow users to enhance their social network 
 Using:
 - Python
 - FastAPI
+- Pydantic (define schemas)
 - PostgreSQL
-- SQLAlchemy
+- SQLAlchemy (ORM)
+- Psycopg to connect to database
 
 HOW TO START:
+
+Virtual Machine:
+- Python3 -m venv connek-venv (if already there don't do)
+- source connek-venv/bin/activate
+Complete
+
+Starting Web Server:
+file_path/fastapi_instance
+uvicorn app.main:app --reload

@@ -1,21 +1,20 @@
+from typing import List
 from fastapi import FastAPI, status, HTTPException, Depends
-from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
 from sqlalchemy.orm import Session
+from datetime import datetime
 from . import models, schemas
 from .database import engine, get_db
-from typing import List
+from .helper import is_valid_number, create_contactResponse
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 while True:
-
     try:
-
         connection = psycopg2.connect(host='localhost', database='ConneK-Project', user='postgres', password='7)&:Bravo79)', 
                                     cursor_factory=RealDictCursor)
         cursor = connection.cursor()
@@ -27,23 +26,20 @@ while True:
         time.sleep(10)
 
 
-
 # Creating Contact
 @app.post("/contacts", status_code=status.HTTP_201_CREATED, response_model=schemas.ContactResponse)
-def create_contact(contact: schemas.CreateContact, db: Session = Depends(get_db)):
-    #using SQLAlchemy
+def create_contact(contact: schemas.ContactBase, db: Session = Depends(get_db)):
 
     if contact.phone_number:
-        # validate phone number
-        pass
+        if not is_valid_number(contact.phone_number):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Invalid Phone Number: {contact.phone_number}")
 
     new_contact = models.Contact(**contact.dict())
     db.add(new_contact)
     db.commit()
     db.refresh(new_contact)
 
-    return new_contact
-
+    return create_contactResponse(new_contact)
 
 
 # Read Contacts
@@ -51,58 +47,60 @@ def create_contact(contact: schemas.CreateContact, db: Session = Depends(get_db)
 def get_contacts(db: Session = Depends(get_db)):
 
     contacts = db.query(models.Contact).all()
-    return contacts
 
+    # Convert the SQLAlchemy Contact models to the Pydantic ContactResponse models
+    contact_responses = [
+        create_contactResponse(contact) #creating new object of ContactResponse for ever SQL model
+        for contact in contacts
+    ]      
+    return contact_responses
 
 
 # Read One Contact
 @app.get("/contacts/{id}", response_model=schemas.ContactResponse)
 def get_contact(id: int, db: Session = Depends(get_db)):
-
-    #cursor.execute("""SELECT * FROM contacts WHERE id = %s""", (str(id),))
     
-    contact = db.query(models.Contact).filter(models.Contact.id == id).first()
+    contact = db.query(models.Contact).filter(models.Contact.contact_id == id).first()
 
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")
     
-    return contact
+    return create_contactResponse(contact)
 
 
-
-# Updating Replace Contact 
+# Updating Replace Contact I DONT THINK YOU NEED THIS
 @app.put("/contacts/{id}", response_model=schemas.ContactResponse)
-def update_contact(id: int, contact: schemas.CreateContact, db: Session = Depends(get_db)):
+def update_contact(id: int, contact: schemas.ContactBase, db: Session = Depends(get_db)):
 
-    contact_query = db.query(models.Contact).filter(models.Contact.id == id)
+    contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
     updated_contact = contact_query.first()
 
     if updated_contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")  
-    
+
     if contact.phone_number:
-        # validate phone number
-        pass
+        if not is_valid_number(contact.phone_number):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Invalid Phone Number: {contact.phone_number}")
     
     contact_query.update(contact.dict(), synchronize_session=False)
     db.commit()
-    return contact_query.first()
-
+    db.refresh(updated_contact)
+    return create_contactResponse(updated_contact)
 
 
 # Updating Patch Contact
 @app.patch("/contacts/{id}", response_model=schemas.ContactResponse)
 def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depends(get_db)):
 
-    contact_query = db.query(models.Contact).filter(models.Contact.id == id)
+    contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
     updated_contact = contact_query.first()
 
     if updated_contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found") 
     
     if contact.phone_number:
-        # validate phone number
-        pass
+        if not is_valid_number(contact.phone_number):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Invalid Phone Number: {contact.phone_number}")
 
     # Create a dictionary to store the attribute updates
     attribute_updates = {}
@@ -123,31 +121,35 @@ def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depend
 
     db.commit()
     db.refresh(updated_contact)
-    return updated_contact
+    return create_contactResponse(updated_contact)
 
 
 # Deleting Contact
 @app.delete("/contacts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_contact(id: int, db: Session = Depends(get_db)):
 
-    #cursor.execute("""DELETE FROM contacts WHERE id = %s RETURNING *""", (str(id),))
-
-    contact = db.query(models.Contact).filter(models.Contact.id == id)
+    contact = db.query(models.Contact).filter(models.Contact.contact_id == id)
 
     if contact.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")
     
     contact.delete(synchronize_session=False)
     db.commit()
+    # Not supposed to return anything
 
-       
-# Creating Contact
-#@app.post("/users", status_code=status.HTTP_201_CREATED)
-#def create_contact(user: schemas.CreateUser, db: Session = Depends(get_db)):
-#
-#    new_user = models.User(**user.dict())
-#    db.add(new_user)
-#    db.commit()
-#    db.refresh(new_user)
-#
-#    return new_user
+
+# update since last hangout to current time stamp
+@app.patch("/contacts/{id}/linked", response_model=schemas.ContactResponse)
+def update_last_hangout(id: int, db: Session = Depends(get_db)):
+
+    contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
+    contact = contact_query.first()
+
+    if contact is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")
+    
+    contact.date_last_hangout = datetime.utcnow()
+
+    db.commit()
+    db.refresh(contact)
+    return create_contactResponse(contact)
