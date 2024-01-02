@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from . import models
+from datetime import datetime
 
 # Contact
 class ContactBase(BaseModel):
@@ -25,19 +26,18 @@ class ContactResponse(BaseModel):
     phone_number: Optional[str] = None
     image: Optional[str] = None
     reminder: Optional[int] = None
-    created_at: str
+    created_at: datetime
+    
 
-#SQL Alchemy model into Pydantic model function
-def create_contactResponse(contact: models.Contact):
-    contact_response = ContactResponse(
-        contact_id = contact.contact_id,
-        first_name = contact.first_name,
-        last_name = contact.last_name,
-        days_since_last_hangout = contact.days_since_last_hangout(),
-        phone_number = contact.phone_number,
-        image = contact.image,
-        reminder = contact.reminder,
-        created_at = str(contact.created_at)
-    )
+# USERS
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
 
-    return contact_response
+class UserResponse(BaseModel):
+    user_id: int
+    email: EmailStr
+    created_at: datetime
+
+    class Config:
+        orm_mode = True

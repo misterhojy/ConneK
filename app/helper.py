@@ -1,6 +1,7 @@
 import re
 from fastapi import HTTPException, status
 from . import models, schemas
+from passlib.context import CryptContext
 
 
 def is_valid_number(phone_number):
@@ -20,7 +21,7 @@ def create_contactResponse(contact: models.Contact):
         phone_number = contact.phone_number,
         image = contact.image,
         reminder = contact.reminder,
-        created_at = str(contact.created_at)
+        created_at = contact.created_at
     )
     return contact_response
 
@@ -39,3 +40,9 @@ def update_attributes(contact: models.Contact):
         attribute_updates["image"] = contact.image
 
     return attribute_updates
+
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") #using the bcrypt hashing algorithms
+# Hashing funciton
+def hash(password: str):
+    return pwd_context.hash(password)
