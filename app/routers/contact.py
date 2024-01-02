@@ -1,5 +1,5 @@
 from fastapi import FastAPI, status, HTTPException, Depends, APIRouter
-from .. import models, schemas, helper
+from .. import models, schemas, helper, oauth2
 from sqlalchemy.orm import Session
 from ..database import get_db
 from datetime import datetime
@@ -13,7 +13,7 @@ router = APIRouter(
 )
 # Creating Contact
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.ContactResponse)
-def create_contact(contact: schemas.ContactBase, db: Session = Depends(get_db)):
+def create_contact(contact: schemas.ContactBase, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
 
     if contact.phone_number:
         helper.is_valid_number(contact.phone_number)
@@ -28,7 +28,7 @@ def create_contact(contact: schemas.ContactBase, db: Session = Depends(get_db)):
 
 # Read Contacts
 @router.get("/", response_model=List[schemas.ContactResponse])
-def get_contacts(db: Session = Depends(get_db)):
+def get_contacts(db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
 
     contacts = db.query(models.Contact).all()
 
@@ -42,7 +42,7 @@ def get_contacts(db: Session = Depends(get_db)):
 
 # Read One Contact
 @router.get("/{id}", response_model=schemas.ContactResponse)
-def get_contact(id: int, db: Session = Depends(get_db)):
+def get_contact(id: int, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
     
     contact = db.query(models.Contact).filter(models.Contact.contact_id == id).first()
 
@@ -54,7 +54,7 @@ def get_contact(id: int, db: Session = Depends(get_db)):
 
 # Updating Replace Contact I DONT THINK YOU NEED THIS
 @router.put("/{id}", response_model=schemas.ContactResponse)
-def update_contact(id: int, contact: schemas.ContactBase, db: Session = Depends(get_db)):
+def update_contact(id: int, contact: schemas.ContactBase, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
 
     contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
     updated_contact = contact_query.first()
@@ -73,7 +73,7 @@ def update_contact(id: int, contact: schemas.ContactBase, db: Session = Depends(
 
 # Updating Patch Contact
 @router.patch("/{id}", response_model=schemas.ContactResponse)
-def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depends(get_db)):
+def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
 
     contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
     updated_contact = contact_query.first()
@@ -96,7 +96,7 @@ def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depend
 
 # Deleting Contact
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_contact(id: int, db: Session = Depends(get_db)):
+def delete_contact(id: int, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
 
     contact = db.query(models.Contact).filter(models.Contact.contact_id == id)
 
@@ -110,7 +110,7 @@ def delete_contact(id: int, db: Session = Depends(get_db)):
 
 # update since last hangout to current time stamp
 @router.patch("/{id}/linked", response_model=schemas.ContactResponse)
-def update_last_hangout(id: int, db: Session = Depends(get_db)):
+def update_last_hangout(id: int, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
 
     contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
     contact = contact_query.first()

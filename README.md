@@ -12,6 +12,7 @@ Using:
 - PostgreSQL
 - SQLAlchemy (ORM)
 - Psycopg to connect to database
+- JWT Token Authentication
 
 HOW TO START:
 
