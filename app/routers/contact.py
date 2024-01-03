@@ -1,4 +1,5 @@
 from fastapi import FastAPI, status, HTTPException, Depends, APIRouter
+from sqlalchemy import and_
 from .. import models, schemas, helper, oauth2
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -13,12 +14,12 @@ router = APIRouter(
 )
 # Creating Contact
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.ContactResponse)
-def create_contact(contact: schemas.ContactBase, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def create_contact(contact: schemas.ContactBase, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 
     if contact.phone_number:
         helper.is_valid_number(contact.phone_number)
 
-    new_contact = models.Contact(**contact.dict())
+    new_contact = models.Contact(user_id=current_user.id, **contact.dict())
     db.add(new_contact)
     db.commit()
     db.refresh(new_contact)
@@ -28,9 +29,9 @@ def create_contact(contact: schemas.ContactBase, db: Session = Depends(get_db), 
 
 # Read Contacts
 @router.get("/", response_model=List[schemas.ContactResponse])
-def get_contacts(db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def get_contacts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 
-    contacts = db.query(models.Contact).all()
+    contacts = db.query(models.Contact).filter(models.Contact.user_id == current_user.id).all() #only the contacts that is made by the user who created
 
     # Convert the SQLAlchemy Contact models to the Pydantic ContactResponse models
     contact_responses = [
@@ -42,9 +43,9 @@ def get_contacts(db: Session = Depends(get_db), user_id: int = Depends(oauth2.ge
 
 # Read One Contact
 @router.get("/{id}", response_model=schemas.ContactResponse)
-def get_contact(id: int, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def get_contact(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     
-    contact = db.query(models.Contact).filter(models.Contact.contact_id == id).first()
+    contact = db.query(models.Contact).filter(and_(models.Contact.user_id == current_user.id, models.Contact.id == id)).first()
 
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")
@@ -54,9 +55,9 @@ def get_contact(id: int, db: Session = Depends(get_db), user_id: int = Depends(o
 
 # Updating Replace Contact I DONT THINK YOU NEED THIS
 @router.put("/{id}", response_model=schemas.ContactResponse)
-def update_contact(id: int, contact: schemas.ContactBase, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def update_contact(id: int, contact: schemas.ContactBase, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 
-    contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
+    contact_query = db.query(models.Contact).filter(and_(models.Contact.user_id == current_user.id, models.Contact.id == id)).first()
     updated_contact = contact_query.first()
 
     if updated_contact is None:
@@ -73,9 +74,9 @@ def update_contact(id: int, contact: schemas.ContactBase, db: Session = Depends(
 
 # Updating Patch Contact
 @router.patch("/{id}", response_model=schemas.ContactResponse)
-def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 
-    contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
+    contact_query = db.query(models.Contact).filter(and_(models.Contact.user_id == current_user.id, models.Contact.id == id)).first()
     updated_contact = contact_query.first()
 
     if updated_contact is None:
@@ -96,9 +97,9 @@ def update_contact(id: int, contact: schemas.UpdateContact, db: Session = Depend
 
 # Deleting Contact
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_contact(id: int, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def delete_contact(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 
-    contact = db.query(models.Contact).filter(models.Contact.contact_id == id)
+    contact = db.query(models.Contact).filter(and_(models.Contact.user_id == current_user.id, models.Contact.id == id))
 
     if contact.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Contact with id of {id} not found")
@@ -110,9 +111,9 @@ def delete_contact(id: int, db: Session = Depends(get_db), user_id: int = Depend
 
 # update since last hangout to current time stamp
 @router.patch("/{id}/linked", response_model=schemas.ContactResponse)
-def update_last_hangout(id: int, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def update_last_hangout(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 
-    contact_query = db.query(models.Contact).filter(models.Contact.contact_id == id)
+    contact_query = db.query(models.Contact).filter(and_(models.Contact.user_id == current_user.id, models.Contact.id == id)).first()
     contact = contact_query.first()
 
     if contact is None:

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, ForeignKey, String, Integer
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from .database import Base
@@ -7,7 +7,7 @@ from .database import Base
 class Contact(Base):
     __tablename__ = "contacts"
 
-    contact_id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     phone_number = Column(String, nullable=True)
@@ -15,6 +15,7 @@ class Contact(Base):
     image = Column(String, nullable=True)
     date_last_hangout = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     # function for computing days since last hangout:
     def days_since_last_hangout(self):
@@ -29,7 +30,7 @@ class Contact(Base):
 
 class User(Base):
     __tablename__ = "users"
-    user_id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))

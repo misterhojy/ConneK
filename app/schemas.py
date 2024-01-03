@@ -19,7 +19,7 @@ class UpdateContact(BaseModel):
     reminder: Optional[int] = None
 
 class ContactResponse(BaseModel):
-    contact_id: int
+    id: int
     first_name: str
     last_name: Optional[str] = None
     days_since_last_hangout: int
@@ -35,7 +35,7 @@ class UserCreate(BaseModel):
     password: str
 
 class UserResponse(BaseModel):
-    user_id: int
+    id: int
     email: EmailStr
     created_at: datetime
 

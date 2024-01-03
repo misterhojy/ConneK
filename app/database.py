@@ -1,8 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
+from .config import settings
 
-SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:7)&:Bravo79)@localhost/ConneK-Project'
+SQLALCHEMY_DATABASE_URL = f'postgresql://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}'
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
@@ -18,4 +22,15 @@ def get_db():
     finally:
         db.close()
 
-# Need Function to update Since_Last_Hangout
+
+#while True:
+#    try:
+#        connection = psycopg2.connect(host='localhost', database='ConneK-Project', user='postgres', password='7)&:Bravo79)', 
+#                                    cursor_factory=RealDictCursor)
+#        cursor = connection.cursor()
+#        print("Database connection was successfull!")
+#        break
+#    except Exception as error:
+#        print("Connection to database failed")
+#        print("Error: ", error)
+#        time.sleep(10)

@@ -14,7 +14,7 @@ def is_valid_number(phone_number):
 #SQL Alchemy model into Pydantic model function
 def create_contactResponse(contact: models.Contact):
     contact_response = schemas.ContactResponse(
-        contact_id = contact.contact_id,
+        id = contact.id,
         first_name = contact.first_name,
         last_name = contact.last_name,
         days_since_last_hangout = contact.days_since_last_hangout(),
