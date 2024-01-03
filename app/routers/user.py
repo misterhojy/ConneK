@@ -25,13 +25,8 @@ def create_contact(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-# Get User NOT NEEDED MAYBE
-#@router.get("/users/{id}", response_model=schemas.UserResponse)
-#def get_user(id: int, db: Session = Depends(get_db)):
-#    
-#    user = db.query(models.Contact).filter(models.User.user_id == id).first()
-#
-#    if user is None:
-#        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id of {id} not found")
-#    
-#    return user
+# Get Current User
+@router.get("/", response_model=schemas.UserResponse)
+def get_user(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    
+    return current_user

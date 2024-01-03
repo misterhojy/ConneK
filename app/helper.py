@@ -50,3 +50,6 @@ def hash(password: str):
 # Password verify
 def verify(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+
+
+# Need a function where it sends reminder when days since hangout is at or equal to reminder
